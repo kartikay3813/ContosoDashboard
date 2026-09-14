@@ -78,6 +78,21 @@ using (var scope = app.Services.CreateScope())
     try
     {
         var context = services.GetRequiredService<ApplicationDbContext>();
+
+            if (databaseProvider.Equals("Sqlite", StringComparison.OrdinalIgnoreCase))
+            {
+                context.Database.OpenConnection();
+                using var command = context.Database.GetDbConnection().CreateCommand();
+                command.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'Documents'";
+                var documentsTableExists = Convert.ToInt32(command.ExecuteScalar()) > 0;
+                context.Database.CloseConnection();
+
+                if (!documentsTableExists)
+                {
+                    context.Database.EnsureDeleted();
+                }
+            }
+
         context.Database.EnsureCreated(); // For development - use migrations in production
         Directory.CreateDirectory(Path.GetFullPath(Path.Combine(builder.Environment.ContentRootPath, documentStorageOptions.RootPath)));
         Directory.CreateDirectory(Path.GetFullPath(Path.Combine(builder.Environment.ContentRootPath, documentStorageOptions.QuarantinePath)));

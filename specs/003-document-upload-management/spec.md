@@ -5,6 +5,16 @@
 **Status**: Draft
 **Input**: User description: `--file StakeholderDocs/document-upload-and-management-feature.md`
 
+## Clarifications
+
+### Session 2026-09-14
+
+- Q: Should Team Leads manage documents uploaded by all users in their department, or only documents uploaded by members of teams they explicitly lead? → A: Team Leads manage documents only for members of teams they explicitly lead.
+- Q: How should malware scanning work in the offline training environment? → A: Use an abstract scanning boundary with a documented local test double for training and real scanning in production.
+- Q: What should a “team” mean when sharing documents and determining Team Lead access? → A: A team is an explicit group with managed membership and designated Team Leads.
+- Q: If a recipient loses project membership but has an explicit document share, should the explicit share continue granting access? → A: The explicit share continues until explicitly revoked.
+- Q: How long should document audit records be retained? → A: Retain audit records for 12 months.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Upload and Categorize Documents (Priority: P1)
@@ -88,7 +98,7 @@ As an administrator, I want document activity records and reports so that I can 
 - Unsafe, mismatched, or misleading file names and content types never become storage paths.
 - Malware scanning failure or threat detection prevents access to the file.
 - Storage and metadata failures clean up incomplete state.
-- Current membership and sharing permissions are re-evaluated for each access request.
+- Current membership and sharing permissions are re-evaluated for each access request; an explicit document share remains valid until explicitly revoked.
 - Missing documents, projects, tasks, or recipients produce safe errors without private-data disclosure.
 - Empty lists and searches provide explicit empty states.
 - Deletion during viewing or downloading never exposes a file after access is denied.
@@ -115,9 +125,10 @@ As an administrator, I want document activity records and reports so that I can 
 - **FR-016**: Task documents MUST be attachable from authorized task views and inherit the task's project association.
 - **FR-017**: The dashboard MUST show five recent uploads and a document count; relevant project and share events MUST create notifications.
 - **FR-018**: The system MUST record uploads, downloads, deletions, and shares with actor, document, action, and time, and administrators MUST be able to generate usage reports.
-- **FR-019**: Upload progress and a success or error result MUST be shown for each upload attempt.
-- **FR-020**: Search MUST return within 2 seconds, lists of up to 500 documents within 2 seconds, uploads up to 25 MB within 30 seconds under typical conditions, and previews within 3 seconds under normal conditions.
-- **FR-021**: Team-based authorization MUST receive Department, NameIdentifier, Name, Email, and Role identity information.
+- **FR-019**: The system MUST retain document audit records for 12 months and make records within that period available to authorized administrators.
+- **FR-020**: Upload progress and a success or error result MUST be shown for each upload attempt.
+- **FR-021**: Search MUST return within 2 seconds, lists of up to 500 documents within 2 seconds, uploads up to 25 MB within 30 seconds under typical conditions, and previews within 3 seconds under normal conditions.
+- **FR-022**: Team-based authorization MUST receive Department, NameIdentifier, Name, Email, and Role identity information.
 
 ### Key Entities
 
@@ -125,12 +136,13 @@ As an administrator, I want document activity records and reports so that I can 
 - **DocumentTag**: User-defined searchable document tag.
 - **DocumentShare**: Explicit user/team access grant and sharing actor/time.
 - **DocumentActivity**: Audit event for document actions.
+- **Team**: An explicit group with managed membership and designated Team Leads for sharing and authorization.
 - **User, Project, TaskItem, Notification**: Existing entities used for identity, scope, task association, and alerts.
 
 ### Access Rules
 
 - Employees may upload personal documents and documents for assigned projects.
-- Team Leads may manage documents within their authorized team scope.
+- Team Leads may manage documents uploaded by members of teams they explicitly lead.
 - Project Managers may manage documents for projects they manage.
 - Administrators have full document and audit access.
 - Users MUST see only documents authorized through ownership, membership, sharing, or administrator authority.
@@ -148,6 +160,8 @@ As an administrator, I want document activity records and reports so that I can 
 - Most documents are under 10 MB, but 25 MB remains the enforced per-file maximum.
 - Access is checked at request time; current membership and sharing changes affect subsequent operations.
 - In-app notifications are sufficient for the initial release.
+- The training implementation uses a documented local malware-scanning test double behind a replaceable scanning boundary; production deployments provide a real scanner implementation.
+- Audit records are retained for 12 months.
 - The three-click upload goal excludes authentication and file-picker interactions.
 
 ## Out of Scope

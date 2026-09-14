@@ -5,6 +5,7 @@
 @using System.Security.Claims
 @attribute [Authorize]
 @inject IProjectService ProjectService
+@inject IDocumentService DocumentService
 @inject NavigationManager NavigationManager
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
@@ -151,6 +152,38 @@
                         }
                     </div>
                 </div>
+
+                <div class="card mt-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Project Documents</h5>
+                        <a class="btn btn-sm btn-primary" href="/documents">View all</a>
+                    </div>
+                    <div class="card-body">
+                        @if (documents == null)
+                        {
+                            <p><em>Loading...</em></p>
+                        }
+                        else if (!documents.Any())
+                        {
+                            <p class="text-muted mb-0">No documents are available for this project.</p>
+                        }
+                        else
+                        {
+                            <div class="list-group list-group-flush">
+                                @foreach (var document in documents)
+                                {
+                                    <div class="list-group-item px-0 d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <strong>@document.Title</strong>
+                                            <div class="small text-muted">@document.Category · @document.OriginalFileName</div>
+                                        </div>
+                                        <a class="btn btn-sm btn-outline-secondary" href="/documents/download/@document.DocumentId">Download</a>
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
             </div>
 
             <div class="col-md-4">
@@ -237,6 +270,7 @@
     public int ProjectId { get; set; }
 
     private Project? project;
+    private IReadOnlyList<DocumentSummary>? documents;
     private int currentUserId = 0;
 
     protected override async Task OnInitializedAsync()
@@ -253,6 +287,10 @@
         if (currentUserId > 0)
         {
             project = await ProjectService.GetProjectByIdAsync(ProjectId, currentUserId);
+            if (project != null)
+            {
+                documents = await DocumentService.ListProjectDocumentsAsync(currentUserId, ProjectId, new DocumentQuery());
+            }
         }
         
         if (project == null)

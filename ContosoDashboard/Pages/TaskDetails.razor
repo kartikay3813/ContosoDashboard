@@ -1,0 +1,25 @@
+@page "/tasks/{TaskId:int}"
+@attribute [Authorize]
+@inject ITaskService TaskService
+@inject IDocumentService DocumentService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+@if (task is null) { <p>Task not found.</p> } else {
+    <h1>@task.Title</h1>
+    <p>@task.Description</p>
+    <h2>Attachments</h2>
+    @if (documents.Count == 0) { <p>No attachments.</p> } else { <ul>@foreach (var document in documents) { <li><a href="/documents/download/@document.DocumentId">@document.OriginalFileName</a></li>}</ul> }
+}
+
+@code {
+    [Parameter] public int TaskId { get; set; }
+    private TaskItem? task;
+    private List<DocumentSummary> documents = new();
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        if (!int.TryParse(state.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value, out var userId)) return;
+        task = await TaskService.GetTaskByIdAsync(TaskId, userId);
+        if (task is not null) documents = (await DocumentService.SearchAsync(userId, new DocumentQuery())).Where(d => d.TaskId == TaskId).ToList();
+    }
+}

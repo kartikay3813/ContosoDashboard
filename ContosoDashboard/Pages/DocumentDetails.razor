@@ -1,0 +1,23 @@
+@page "/documents/{DocumentId:int}"
+@attribute [Authorize]
+@inject IDocumentService DocumentService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+@if (document is null) { <p>Document not found.</p> } else {
+    <PageTitle>@document.Title</PageTitle>
+    <h1>@document.Title</h1>
+    <dl><dt>Category</dt><dd>@document.Category</dd><dt>File</dt><dd>@document.OriginalFileName</dd><dt>Uploaded</dt><dd>@document.UploadedAt.ToLocalTime()</dd></dl>
+    <a class="btn btn-primary" href="/documents/download/@DocumentId">Download</a>
+    @if (!string.IsNullOrWhiteSpace(error)) { <p class="text-danger">@error</p> }
+}
+
+@code {
+    [Parameter] public int DocumentId { get; set; }
+    private DocumentSummary? document;
+    private string? error;
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        if (int.TryParse(state.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value, out var userId)) document = await DocumentService.GetMetadataAsync(userId, DocumentId);
+    }
+}

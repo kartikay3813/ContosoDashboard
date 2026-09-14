@@ -56,6 +56,15 @@ builder.Services.AddScoped<ITaskService, TaskService>();
 builder.Services.AddScoped<IProjectService, ProjectService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
+var documentStorageOptions = new DocumentStorageOptions(
+    builder.Configuration["DocumentStorage:RootPath"] ?? "AppData/documents",
+    builder.Configuration["DocumentStorage:QuarantinePath"] ?? "AppData/quarantine");
+builder.Services.AddSingleton(documentStorageOptions);
+builder.Services.AddSingleton<IFileStorageService, LocalFileStorageService>();
+builder.Services.AddSingleton<IMalwareScanner, DeterministicMalwareScanner>();
+builder.Services.AddScoped<IDocumentAuthorizationService, DocumentAuthorizationService>();
+builder.Services.AddScoped<IDocumentService, DocumentService>();
+builder.Services.AddScoped<ITeamService, TeamService>();
 
 // Add HttpContextAccessor for accessing user claims
 builder.Services.AddHttpContextAccessor();
@@ -70,6 +79,8 @@ using (var scope = app.Services.CreateScope())
     {
         var context = services.GetRequiredService<ApplicationDbContext>();
         context.Database.EnsureCreated(); // For development - use migrations in production
+        Directory.CreateDirectory(Path.GetFullPath(Path.Combine(builder.Environment.ContentRootPath, documentStorageOptions.RootPath)));
+        Directory.CreateDirectory(Path.GetFullPath(Path.Combine(builder.Environment.ContentRootPath, documentStorageOptions.QuarantinePath)));
     }
     catch (Exception ex)
     {

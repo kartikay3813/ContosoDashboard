@@ -17,6 +17,12 @@ public class ApplicationDbContext : DbContext
     public DbSet<Notification> Notifications { get; set; } = null!;
     public DbSet<ProjectMember> ProjectMembers { get; set; } = null!;
     public DbSet<Announcement> Announcements { get; set; } = null!;
+    public DbSet<Document> Documents { get; set; } = null!;
+    public DbSet<DocumentTag> DocumentTags { get; set; } = null!;
+    public DbSet<DocumentShare> DocumentShares { get; set; } = null!;
+    public DbSet<Team> Teams { get; set; } = null!;
+    public DbSet<TeamMembership> TeamMemberships { get; set; } = null!;
+    public DbSet<DocumentActivity> DocumentActivities { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -63,6 +69,25 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<User>()
             .HasIndex(u => u.Email)
             .IsUnique();
+
+        modelBuilder.Entity<Document>().HasIndex(d => d.StoragePath).IsUnique();
+        modelBuilder.Entity<Document>().HasIndex(d => new { d.UploadedByUserId, d.UploadedAt });
+        modelBuilder.Entity<Document>().HasIndex(d => new { d.ProjectId, d.ScanStatus });
+        modelBuilder.Entity<DocumentTag>().HasIndex(t => new { t.DocumentId, t.TagText }).IsUnique();
+        modelBuilder.Entity<TeamMembership>().HasIndex(m => new { m.TeamId, m.UserId }).IsUnique();
+        modelBuilder.Entity<DocumentShare>().HasCheckConstraint("CK_DocumentShare_OneTarget", "(UserId IS NOT NULL AND TeamId IS NULL) OR (UserId IS NULL AND TeamId IS NOT NULL)");
+        modelBuilder.Entity<Document>().HasOne(d => d.UploadedByUser).WithMany(u => u.UploadedDocuments).HasForeignKey(d => d.UploadedByUserId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<Document>().HasOne(d => d.Project).WithMany(p => p.Documents).HasForeignKey(d => d.ProjectId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<Document>().HasOne(d => d.Task).WithMany(t => t.Documents).HasForeignKey(d => d.TaskId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<DocumentTag>().HasOne(t => t.Document).WithMany(d => d.Tags).HasForeignKey(t => t.DocumentId).OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<DocumentShare>().HasOne(s => s.Document).WithMany(d => d.Shares).HasForeignKey(s => s.DocumentId).OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<DocumentShare>().HasOne(s => s.User).WithMany(u => u.DocumentShares).HasForeignKey(s => s.UserId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<DocumentShare>().HasOne(s => s.GrantedByUser).WithMany().HasForeignKey(s => s.GrantedByUserId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<DocumentShare>().HasOne(s => s.Team).WithMany(t => t.DocumentShares).HasForeignKey(s => s.TeamId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<TeamMembership>().HasOne(m => m.Team).WithMany(t => t.Memberships).HasForeignKey(m => m.TeamId).OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<TeamMembership>().HasOne(m => m.User).WithMany(u => u.TeamMemberships).HasForeignKey(m => m.UserId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<DocumentActivity>().HasOne(a => a.Document).WithMany().HasForeignKey(a => a.DocumentId).OnDelete(DeleteBehavior.SetNull);
+        modelBuilder.Entity<DocumentActivity>().HasOne(a => a.ActorUser).WithMany().HasForeignKey(a => a.ActorUserId).OnDelete(DeleteBehavior.Restrict);
 
         // Seed initial data
         SeedData(modelBuilder);
